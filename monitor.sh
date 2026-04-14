@@ -1,12 +1,12 @@
 #!/bin/bash
 
-comando=$1
+comando=("${@:1:$#-1}")
 intervalo=2
 
-#Manejo Argumentos
+#Manejo de Argumentos
 
 if [ $# -eq 2 ]; then
-    intervalo=$2
+    intervalo="${@: -1}"
 
 elif [ $# -eq 0 ] || [ $# -gt 2 ]; then
     echo "USO: $0 <comando> <intervalo de tiempo>"
@@ -17,22 +17,49 @@ fi
 
 $comando &
 
-
-
 PID=$!
-echo "$PID"
 
-#Manejo Finalizacion 
+#Manejo de Finalizacion 
 
-trap "kill $PID" SIGINT
+cleanup(){
+
+    kill -9 $PID
+
+    #Graficación 
+
+    gnuplot <<EOF
+    set terminal png
+    set output "monitor_$PID.png"
+    set title "PID $PID"
+    set xlabel "Tiempo"
+    set ylabel "%CPU"
+    set y2label "RSS (KB)"
+    set ytics nomirror
+    set y2tics
+    plot "monitor_$PID.log" using 3 with lines axes x1y1 title "CPU", "monitor_$PID.log" using 5 with lines axes x1y2 title "RSS"
+
+EOF
+    exit 0
+}
+
+trap cleanup SIGINT EXIT
 
 #Registro de datos
 
+time=0
+
 while (kill -0 $PID 2>/dev/null)
 do
-    ps -p $PID -o %cpu,%mem,rss --no-headers
+    INFO=$(ps -p $PID -o %cpu,%mem,rss --no-headers)
+    TIMESTAMP=$(date "+%Y-%m-%d %I:%M:%S")
+    echo "$TIMESTAMP $INFO" >> monitor_$PID.log
+    time=$((time + intervalo))
     sleep $intervalo
+
 done
+
+TITULO="${comando} $PID"
+OUTPUT="monitor_${PID}.png"
 
 
 
