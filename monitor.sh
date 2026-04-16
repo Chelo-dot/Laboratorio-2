@@ -1,18 +1,16 @@
 #!/bin/bash
 
 comando=("${@:1:$#-1}")
-intervalo=2
+intervalo="${@: -1}"
 
 #Manejo de Argumentos
 
-if [ $# -eq 2 ]; then
-
-    intervalo="${@: -1}"
-
-elif [ $# -eq 0 ] || [ $# -gt 2 ]; then
+if [ $# -lt  2 ]; then
     echo "USO: $0 <comando> <intervalo de tiempo>"
     exit 1
 fi
+
+
 
 #Lanzar comando
 
@@ -24,7 +22,9 @@ PID=$!
 
 cleanup(){
 
-    kill -9 $PID
+
+
+    kill $PID
 
     #Graficación 
     TITULO="${comando} $PID"
@@ -53,7 +53,7 @@ time=0
 
 while (kill -0 $PID 2>/dev/null)
 do
-    INFO=$(ps -p $PID -o %cpu,%mem,rss --no-headers)
+    INFO=$(ps --ppid $PID -p $PID -o %cpu,%mem,rss --no-headers | awk '{cpu+=$1; mem+=$2; rss+=$3} END {print cpu, mem, rss}')
     TIMESTAMP=$(date "+%Y-%m-%d %I:%M:%S")
     echo "$time $TIMESTAMP $INFO" >> monitor_$PID.log
     time=$((time + intervalo))
