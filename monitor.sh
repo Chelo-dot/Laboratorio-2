@@ -31,8 +31,6 @@ cleanup(){
 
     gnuplot <<EOF
     set terminal png
-    set xrange [0:$time]
-    set xtics 0, $intervalo, $time
     set output "monitor_$PID.png"
     set title "$TITULO"
     set xlabel "Tiempo(s)"
@@ -41,7 +39,7 @@ cleanup(){
     set ytics nomirror
     set y2tics
 
-    plot "monitor_$PID.log" using 3 with lines axes x1y1 title "CPU", "monitor_$PID.log" using 5 with lines axes x1y2 title "RSS"
+    plot "monitor_$PID.log" using 1:4 with lines axes x1y1 title "CPU", "monitor_$PID.log" using 1:6 with lines axes x1y2 title "RSS"
 
 EOF
     exit 0
@@ -57,7 +55,7 @@ while (kill -0 $PID 2>/dev/null)
 do
     INFO=$(ps -p $PID -o %cpu,%mem,rss --no-headers)
     TIMESTAMP=$(date "+%Y-%m-%d %I:%M:%S")
-    echo "$TIMESTAMP $INFO" >> monitor_$PID.log
+    echo "$time $TIMESTAMP $INFO" >> monitor_$PID.log
     time=$((time + intervalo))
 
     sleep $intervalo
